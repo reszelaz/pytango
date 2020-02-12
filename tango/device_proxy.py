@@ -10,7 +10,7 @@
 # ------------------------------------------------------------------------------
 
 """Define python methods for DeviceProxy object."""
-
+import logging
 import time
 import textwrap
 import threading
@@ -1246,10 +1246,10 @@ def __DeviceProxy__subscribe_event_attrib(self, attr_name, event_type,
         raise TypeError(
             "Parameter cb_or_queuesize should be a number, a"
             " callable object or an object with a 'push_event' method.")
-    print("__DeviceProxy.subscribe_event_attrib({}): before self.__subscribe_event".format(attr_name))
+    logging.error("__DeviceProxy.subscribe_event_attrib({}): before self.__subscribe_event".format(attr_name))
     event_id = self.__subscribe_event(
         attr_name, event_type, cb, filters, stateless, extract_as)
-    print("__DeviceProxy.subscribe_event_attrib({}): after self.__subscribe_event; id = {}".format(attr_name, event_id))
+    logging.error("__DeviceProxy.subscribe_event_attrib({}): after self.__subscribe_event; id = {}".format(attr_name, event_id))
     with self.__get_event_map_lock():
         se = self.__get_event_map()
         evt_data = se.get(event_id)
@@ -1301,9 +1301,11 @@ def __DeviceProxy__unsubscribe_event(self, event_id):
             raise KeyError("This device proxy does not own this subscription " + str(event_id))
         del se[event_id]
         self._pending_unsubscribe[event_id] = evt_info[0], timestamp + _UNSUBSCRIBE_LIFETIME
-    print("__DeviceProxy__unsubscribe_event({}): before self.__unsubscribe_event".format(event_id))
+    logging.error("__DeviceProxy__unsubscribe_event({}): before self.__unsubscribe_event".format(event_id))
     self.__unsubscribe_event(event_id)
-    print("__DeviceProxy__unsubscribe_event({}): after self.__unsubscribe_event".format(event_id))
+    # if threading.current_thread().name != "MainThread":
+    #     import pdb; pdb.set_trace()
+    logging.error("__DeviceProxy__unsubscribe_event({}): after self.__unsubscribe_event".format(event_id))
 
 
 def __DeviceProxy__unsubscribe_event_all(self):
