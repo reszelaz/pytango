@@ -1246,16 +1246,21 @@ def __DeviceProxy__subscribe_event_attrib(self, attr_name, event_type,
         raise TypeError(
             "Parameter cb_or_queuesize should be a number, a"
             " callable object or an object with a 'push_event' method.")
-    logging.error("__DeviceProxy.subscribe_event_attrib({}): before self.__subscribe_event".format(attr_name))
+    logging.error("__DeviceProxy.__subscribe_event_attrib({}): before self.__subscribe_event".format(attr_name))
     event_id = self.__subscribe_event(
         attr_name, event_type, cb, filters, stateless, extract_as)
-    logging.error("__DeviceProxy.subscribe_event_attrib({}): after self.__subscribe_event; id = {}".format(attr_name, event_id))
+    logging.error("__DeviceProxy.__subscribe_event_attrib({}): after self.__subscribe_event; id = {}".format(attr_name, event_id))
+    logging.error("__DeviceProxy.__subscribe_event({}): before event_map_lock acquire".format(event_id))
     with self.__get_event_map_lock():
+        logging.error("__DeviceProxy.__subscribe_event({}): after event_map_lock acquire".format(event_id))
         se = self.__get_event_map()
         evt_data = se.get(event_id)
         if evt_data is None:
             se[event_id] = (cb, event_type, attr_name)
+            logging.error(
+                "__DeviceProxy.__subscribe_event({}): after event_map_lock release".format(event_id))
             return event_id
+        logging.error("__DeviceProxy.__subscribe_event({}): after event_map_lock release exception".format(event_id))
         # Raise exception
         desc = textwrap.dedent("""\
             Internal PyTango error:
@@ -1286,7 +1291,9 @@ def __DeviceProxy__unsubscribe_event(self, event_id):
     events_del = set()
     timestamp = time.time()
     se = self.__get_event_map()
+    logging.error("__DeviceProxy__unsubscribe_event({}): before event_map_lock acquire".format(event_id))
     with self.__get_event_map_lock():
+        logging.error("__DeviceProxy__unsubscribe_event({}): after event_map_lock acquire".format(event_id))
         # first delete event callbacks that have expire
         for evt_id, (_, expire_time) in self._pending_unsubscribe.items():
             if expire_time <= timestamp:
@@ -1301,6 +1308,7 @@ def __DeviceProxy__unsubscribe_event(self, event_id):
             raise KeyError("This device proxy does not own this subscription " + str(event_id))
         del se[event_id]
         self._pending_unsubscribe[event_id] = evt_info[0], timestamp + _UNSUBSCRIBE_LIFETIME
+    logging.error("__DeviceProxy__unsubscribe_event({}): after event_map_lock release".format(event_id))
     logging.error("__DeviceProxy__unsubscribe_event({}): before self.__unsubscribe_event".format(event_id))
     self.__unsubscribe_event(event_id)
     # if threading.current_thread().name != "MainThread":
